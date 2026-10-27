@@ -20,7 +20,7 @@ import android.media.MediaPlayer;
 
 import java.io.IOException;
 
-public class AndroidPlayer extends MediaPlayer {
+public class AndroidPlayer extends MediaPlayer implements ru.woesss.j2me.taho.AudioMute.Listener {
 	private boolean loaded;
 	private String path;
 	private float leftVolume, rightVolume;
@@ -31,6 +31,7 @@ public class AndroidPlayer extends MediaPlayer {
 		super();
 		this.leftVolume = 1.0f;
 		this.rightVolume = 1.0f;
+		ru.woesss.j2me.taho.AudioMute.register(this);
 	}
 
 	@Override
@@ -75,10 +76,20 @@ public class AndroidPlayer extends MediaPlayer {
 	@Override
 	public void setVolume(float leftVolume, float rightVolume) {
 		if (loaded) {
-			super.setVolume(leftVolume, rightVolume);
+			super.setVolume(ru.woesss.j2me.taho.AudioMute.scale(leftVolume), ru.woesss.j2me.taho.AudioMute.scale(rightVolume));
 		}
 		this.leftVolume = leftVolume;
 		this.rightVolume = rightVolume;
+	}
+
+	@Override
+	public void onMuteChanged() {
+		if (loaded) {
+			try {
+				super.setVolume(ru.woesss.j2me.taho.AudioMute.scale(leftVolume), ru.woesss.j2me.taho.AudioMute.scale(rightVolume));
+			} catch (IllegalStateException ignored) {
+			}
+		}
 	}
 
 	@Override
@@ -101,7 +112,7 @@ public class AndroidPlayer extends MediaPlayer {
 			try {
 				super.setDataSource(path);
 				super.prepare();
-				super.setVolume(leftVolume, rightVolume);
+				super.setVolume(ru.woesss.j2me.taho.AudioMute.scale(leftVolume), ru.woesss.j2me.taho.AudioMute.scale(rightVolume));
 				super.setLooping(looping);
 				super.seekTo(timePos);
 			} catch (IOException e) {

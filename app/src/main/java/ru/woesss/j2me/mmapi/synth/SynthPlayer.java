@@ -47,7 +47,7 @@ import javax.microedition.media.tone.ToneSequence;
 import ru.woesss.j2me.mmapi.control.MIDIControlImpl;
 import ru.woesss.j2me.mmapi.protocol.device.DeviceMetaData;
 
-class SynthPlayer extends BasePlayer2 implements VolumeControl, PanControl, ToneControl {
+class SynthPlayer extends BasePlayer2 implements VolumeControl, PanControl, ToneControl, ru.woesss.j2me.taho.AudioMute.Listener {
 	private static final String TAG = SynthPlayer.class.getSimpleName();
 
 	private final ExecutorService callbackExecutor = Executors.newSingleThreadExecutor(r -> {
@@ -79,6 +79,14 @@ class SynthPlayer extends BasePlayer2 implements VolumeControl, PanControl, Tone
 		this.dataSource = dataSource;
 		handle = library.createPlayer(locator);
 		library.setListener(handle, this);
+		ru.woesss.j2me.taho.AudioMute.register(this);
+	}
+
+	@Override
+	public void onMuteChanged() {
+		if (state != CLOSED) {
+			updateVolume();
+		}
 	}
 
 	@Override
@@ -385,6 +393,10 @@ class SynthPlayer extends BasePlayer2 implements VolumeControl, PanControl, Tone
 	}
 
 	private void updateVolume() {
+		if (ru.woesss.j2me.taho.AudioMute.isMuted() || mute) {
+			library.setVolume(handle, 0, 0);
+			return;
+		}
 		float gain = volumeToGain(volume);
 		if (pan == 0) {
 			library.setVolume(handle, gain, gain);

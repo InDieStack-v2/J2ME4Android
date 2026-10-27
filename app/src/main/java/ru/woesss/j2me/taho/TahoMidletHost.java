@@ -14,7 +14,9 @@ import java.io.File;
 import java.util.LinkedHashMap;
 
 import javax.microedition.lcdui.Canvas;
+import javax.microedition.lcdui.Display;
 import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.event.RunnableEvent;
 import javax.microedition.shell.MicroHost;
 import javax.microedition.shell.MicroLoader;
 import javax.microedition.shell.MidletSystem;
@@ -34,9 +36,10 @@ public final class TahoMidletHost {
 	}
 
 	/** Must be called on the main thread, once per process, with the game already prepared (TahoInstaller). */
-	public static TahoMidletHost start(Context context, String gameId, int width, int height, boolean smooth,
+	public static TahoMidletHost start(Context context, String gameId, int width, int height, boolean smooth, boolean muted,
 									   MicroHost.Listener listener) throws Exception {
 		ContextHolder.setAppContext(context);
+		AudioMute.setMuted(muted);
 		File appDir = new File(Config.getAppDir(), gameId);
 		File configDir = new File(Config.getConfigsDir(), gameId);
 		if (!configDir.isDirectory() && !configDir.mkdirs()) {
@@ -95,6 +98,15 @@ public final class TahoMidletHost {
 	/** Asks the MIDlet to end the way the player leaving would: END key, destroyApp, then notifyDestroyed. */
 	public void requestExit() {
 		MidletThread.destroyApp();
+	}
+
+	public void setMuted(boolean muted) {
+		AudioMute.setMuted(muted);
+	}
+
+	/** Runs on the game's own event thread, so it stops arriving when a callback of the game never returns. */
+	public void postHeartbeat(Runnable beat) {
+		Display.postEvent(RunnableEvent.getInstance(beat));
 	}
 
 	public void setPaused(boolean paused) {

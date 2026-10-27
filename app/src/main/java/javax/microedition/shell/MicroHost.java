@@ -12,6 +12,7 @@ package javax.microedition.shell;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
+import android.util.TypedValue;
 import android.os.Looper;
 import android.view.ContextThemeWrapper;
 import android.view.View;
@@ -50,6 +51,11 @@ public class MicroHost extends ContextThemeWrapper {
 		super(base, theme);
 		this.appName = appName;
 		rootView = new FrameLayout(this);
+		// MicroActivity's window supplied the background that LCDUI Forms, Lists and Alerts are drawn on.
+		TypedValue background = new TypedValue();
+		if (getTheme().resolveAttribute(android.R.attr.colorBackground, background, true)) {
+			rootView.setBackgroundColor(background.data);
+		}
 		displayableContainer = new FrameLayout(this);
 		overlayView = new OverlayView(this, null);
 		rootView.addView(displayableContainer, new FrameLayout.LayoutParams(
