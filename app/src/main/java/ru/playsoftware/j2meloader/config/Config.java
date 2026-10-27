@@ -33,7 +33,7 @@ import androidx.preference.PreferenceManager;
 
 import java.io.File;
 
-import javax.microedition.shell.MicroActivity;
+import javax.microedition.shell.MicroHost;
 import javax.microedition.util.ContextHolder;
 
 import ru.playsoftware.j2meloader.BuildConfig;
@@ -66,31 +66,12 @@ public class Config {
 	private static String profilesDir;
 	private static String appDir;
 
-	@Keep
-	private static final SharedPreferences.OnSharedPreferenceChangeListener sPrefListener =
-			(sharedPreferences, key) -> {
-				if (PREF_EMULATOR_DIR.equals(key)) {
-					initDirs(sharedPreferences.getString(key, emulatorDir));
-				}
-			};
-
 	static {
+		// Taho fork: everything lives under the app's private files dir, so nothing needs a storage permission.
 		Context context = ContextHolder.getAppContext();
-		String appName = "J2ME-Loader";
-		if (!BuildConfig.FULL_EMULATOR) {
-			appName = context.getString(R.string.app_name);
-		}
-		SCREENSHOTS_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-				+ "/" + appName;
-		SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-		String path = FileUtils.isExternalStorageLegacy() ?
-				preferences.getString(PREF_EMULATOR_DIR, null) :
-				context.getExternalFilesDir(null).getPath();
-		if (path == null) {
-			path = Environment.getExternalStorageDirectory() + "/" + appName;
-		}
-		initDirs(path);
-		preferences.registerOnSharedPreferenceChangeListener(sPrefListener);
+		String root = context.getFilesDir().getPath() + "/j2me";
+		SCREENSHOTS_DIR = root + "/screenshots";
+		initDirs(root);
 	}
 
 	public static String getEmulatorDir() {
@@ -130,29 +111,6 @@ public class Config {
 			return Environment.getExternalStorageDirectory().getPath() + "/";
 		} else {
 			return emulatorDir + FS_DIR + "e/";
-		}
-	}
-
-	public static void startApp(Context context, String name, String path, boolean showSettings) {
-		startApp(context, name, path, showSettings, null);
-	}
-
-	public static void startApp(Context context, String name, String path, boolean showSettings, String arguments) {
-		File appDir = new File(path);
-		String workDir = appDir.getParentFile().getParent();
-		File file = new File(workDir + Config.MIDLET_CONFIGS_DIR + appDir.getName());
-		if (showSettings || !file.exists()) {
-			Intent intent = new Intent(ACTION_EDIT, Uri.parse(path),
-					context, ConfigActivity.class);
-			intent.putExtra(KEY_MIDLET_NAME, name);
-			intent.putExtra(KEY_START_ARGUMENTS, arguments);
-			context.startActivity(intent);
-		} else {
-			Intent intent = new Intent(Intent.ACTION_DEFAULT, Uri.parse(path),
-					context, MicroActivity.class);
-			intent.putExtra(KEY_MIDLET_NAME, name);
-			intent.putExtra(KEY_START_ARGUMENTS, arguments);
-			context.startActivity(intent);
 		}
 	}
 

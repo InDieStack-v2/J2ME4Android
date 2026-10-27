@@ -16,7 +16,7 @@ public final class MidletSystem {
     private static final String TAG = MidletSystem.class.getName();
     private static final Map<String, String> PROPERTY = new HashMap<>();
 
-    static void setProperty(String key, String value) {
+    public static void setProperty(String key, String value) {
         PROPERTY.put(key, value);
     }
 

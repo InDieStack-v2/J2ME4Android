@@ -30,7 +30,7 @@ import javax.microedition.lcdui.overlay.Layer;
 import javax.microedition.lcdui.overlay.OverlayView;
 import javax.microedition.media.control.GUIControl;
 import javax.microedition.media.control.VideoControl;
-import javax.microedition.shell.MicroActivity;
+import javax.microedition.shell.MicroHost;
 import javax.microedition.util.ContextHolder;
 
 public class CameraPlayer extends BasePlayer implements VideoControl, Layer {
@@ -202,11 +202,11 @@ public class CameraPlayer extends BasePlayer implements VideoControl, Layer {
 	}
 
 	private void attachDirectVideo() {
-		MicroActivity activity = ContextHolder.getActivity();
+		MicroHost activity = ContextHolder.getActivity();
 		if (activity == null) {
 			return;
 		}
-		OverlayView view = activity.binding.overlayView;
+		OverlayView view = activity.getOverlayView();
 		overlayView = view;
 		view.post(() -> view.addLayer(this, 0));
 	}

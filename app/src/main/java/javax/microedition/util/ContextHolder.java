@@ -43,22 +43,28 @@ import java.util.Objects;
 
 import javax.microedition.lcdui.keyboard.VirtualKeyboard;
 import javax.microedition.shell.AppClassLoader;
-import javax.microedition.shell.MicroActivity;
+import javax.microedition.shell.MicroHost;
 
 import ru.playsoftware.j2meloader.BuildConfig;
-import ru.playsoftware.j2meloader.EmulatorApplication;
 import ru.playsoftware.j2meloader.config.Config;
 
 public class ContextHolder {
 	private static Display display;
 	private static VirtualKeyboard vk;
-	private static WeakReference<MicroActivity> currentActivity;
+	private static WeakReference<MicroHost> currentActivity;
 	private static Vibrator vibrator;
 	private static final ArrayList<ActivityResultListener> resultListeners = new ArrayList<>();
 	private static boolean vibrationEnabled;
 
+	private static Context appContext;
+
+	/** Set once by the embedding service, before the runtime starts (replaces EmulatorApplication.getInstance()). */
+	public static void setAppContext(Context context) {
+		appContext = context.getApplicationContext();
+	}
+
 	public static Context getAppContext() {
-		return EmulatorApplication.getInstance();
+		return appContext;
 	}
 
 	public static VirtualKeyboard getVk() {
@@ -84,7 +90,7 @@ public class ContextHolder {
 		return getDisplay().getHeight();
 	}
 
-	public static void setCurrentActivity(MicroActivity activity) {
+	public static void setCurrentActivity(MicroHost activity) {
 		currentActivity = new WeakReference<>(activity);
 	}
 
@@ -139,29 +145,20 @@ public class ContextHolder {
 	}
 
 	public static boolean requestPermission(String permission) {
-		MicroActivity context = currentActivity.get();
+		MicroHost context = currentActivity.get();
 		if (context == null) {
 			return false;
 		}
-		if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
-			ActivityCompat.requestPermissions(context, new String[]{permission}, 0);
-			return false;
-		} else {
-			return true;
-		}
+		// The game process has no window to ask in: a permission the app does not hold already is denied.
+		return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED;
 	}
 
 	public static boolean requestPermissions(String[] permissions) {
-		MicroActivity context = currentActivity.get();
+		MicroHost context = currentActivity.get();
 		if (context == null) {
 			return false;
 		}
-		if (!hasPermissions(context, permissions)) {
-			ActivityCompat.requestPermissions(context, permissions, 0);
-			return false;
-		} else {
-			return true;
-		}
+		return hasPermissions(context, permissions);
 	}
 
 	private static boolean hasPermissions(Context context, String... permissions) {
@@ -191,7 +188,7 @@ public class ContextHolder {
 		return sb.toString();
 	}
 
-	public static MicroActivity getActivity() {
+	public static MicroHost getActivity() {
 		return currentActivity.get();
 	}
 

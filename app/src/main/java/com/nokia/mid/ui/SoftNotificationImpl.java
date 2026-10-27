@@ -32,7 +32,7 @@ import androidx.core.graphics.drawable.IconCompat;
 
 import java.util.Hashtable;
 
-import javax.microedition.shell.MicroActivity;
+import javax.microedition.shell.MicroHost;
 import javax.microedition.util.ContextHolder;
 
 import ru.playsoftware.j2meloader.R;
@@ -45,7 +45,7 @@ public class SoftNotificationImpl extends SoftNotification {
 	@SuppressLint("StaticFieldLeak")
 	private static NotificationManagerCompat notificationmgr;
 	@SuppressLint("StaticFieldLeak")
-	private static MicroActivity activity;
+	private static MicroHost activity;
 
 	private SoftNotificationListener[] listeners;
 	private String groupText;

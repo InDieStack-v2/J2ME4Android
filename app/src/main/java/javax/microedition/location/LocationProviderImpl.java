@@ -213,14 +213,8 @@ public class LocationProviderImpl extends LocationProvider implements android.lo
 
     protected static void requestLocationPermission() {
         if (ContextCompat.checkSelfPermission(ContextHolder.getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(ContextHolder.getActivity(), new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-            try {
-                synchronized (LocationProviderImpl.permissionLock) {
-                    permissionLock.wait();
-                }
-            } catch (InterruptedException e) {
-                return;
-            }
+            // No window to ask in: the app's own permission decides.
+            permissionResult = false;
             if (!permissionResult) {
                 throw new SecurityException();
             }

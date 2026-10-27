@@ -63,7 +63,7 @@ public class MidletThread extends HandlerThread implements Handler.Callback {
 		handler.obtainMessage(INIT).sendToTarget();
 	}
 
-	static void create(MicroLoader microLoader, String mainClass) {
+	public static void create(MicroLoader microLoader, String mainClass) {
 		instance = new MidletThread(microLoader, mainClass);
 	}
 
@@ -72,27 +72,31 @@ public class MidletThread extends HandlerThread implements Handler.Callback {
 		if (instance != null) {
 			instance.state = DESTROYED;
 		}
-		MicroActivity activity = ContextHolder.getActivity();
+		MicroHost activity = ContextHolder.getActivity();
 		if (activity != null) {
 			activity.finish();
 		}
-		if (startAfterDestroy != null) {
-			Config.startApp(ContextHolder.getActivity(), startAfterDestroy[0], startAfterDestroy[1], false, startAfterDestroy[2]);
-		}
-		Process.killProcess(Process.myPid());
+		// The app is told through MicroHost.finish(); give that message a moment to arrive before the process goes.
+		new Thread(() -> {
+			try {
+				Thread.sleep(300);
+			} catch (InterruptedException ignored) {
+			}
+			Process.killProcess(Process.myPid());
+		}, "ExitTimer").start();
 	}
 
 	public static void notifyPaused() {
 		instance.state = PAUSED;
 	}
 
-	static void pauseApp() {
+	public static void pauseApp() {
 		if (instance != null)
 			instance.handler.obtainMessage(PAUSE).sendToTarget();
 	}
 
 	public static void resumeApp() {
-		MicroActivity activity = ContextHolder.getActivity();
+		MicroHost activity = ContextHolder.getActivity();
 		if (instance != null && activity != null && activity.isVisible())
 			instance.handler.obtainMessage(START).sendToTarget();
 	}
@@ -107,7 +111,7 @@ public class MidletThread extends HandlerThread implements Handler.Callback {
 			}
 			Process.killProcess(Process.myPid());
 		}, "ForceDestroyTimer").start();
-		MicroActivity activity = ContextHolder.getActivity();
+		MicroHost activity = ContextHolder.getActivity();
 		if (activity != null) {
 			Displayable current = activity.getCurrent();
 			if (current instanceof Canvas) {

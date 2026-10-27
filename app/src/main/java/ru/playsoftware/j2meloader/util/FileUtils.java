@@ -231,12 +231,4 @@ public class FileUtils {
 	public static boolean isExternalStorageLegacy() {
 		return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Environment.isExternalStorageLegacy();
 	}
-
-	public static ActivityResultContract<String, List<Uri>> getFilePicker() {
-		if (isExternalStorageLegacy()) {
-			return new PickFileResultContract();
-		} else {
-			return new SAFFileResultContract();
-		}
-	}
 }

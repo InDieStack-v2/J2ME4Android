@@ -24,7 +24,7 @@ import androidx.preference.PreferenceManager;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
-import javax.microedition.shell.MicroActivity;
+import javax.microedition.shell.MicroHost;
 import javax.microedition.util.ContextHolder;
 
 import ru.playsoftware.j2meloader.BuildConfig;
@@ -72,7 +72,7 @@ public class Utils {
 	}
 
 	public static String getVersion() {
-		return BuildConfig.VERSION_NAME;
+		return "taho";
 	}
 
 	public static void multiplyMV(float[] v, float[] m) {
@@ -95,7 +95,7 @@ public class Utils {
 	static native void glReadPixels(int x, int y, int width, int height, Bitmap bitmapBuffer);
 
 	static {
-		MicroActivity microActivity = ContextHolder.getActivity();
+		MicroHost microActivity = ContextHolder.getActivity();
 		SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(microActivity);
 		if (sp.getBoolean("micro3d_using_message", false)) {
 			microActivity.toast(R.string.msg_mascot_capsule);

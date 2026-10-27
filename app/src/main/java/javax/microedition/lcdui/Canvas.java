@@ -72,7 +72,7 @@ import javax.microedition.lcdui.overlay.FpsCounter;
 import javax.microedition.lcdui.overlay.Layer;
 import javax.microedition.lcdui.overlay.Overlay;
 import javax.microedition.lcdui.overlay.OverlayView;
-import javax.microedition.shell.MicroActivity;
+import javax.microedition.shell.MicroHost;
 import javax.microedition.util.ContextHolder;
 
 import io.reactivex.Single;
@@ -526,7 +526,7 @@ public abstract class Canvas extends Displayable {
 	public View getDisplayableView() {
 		if (layout == null) {
 			layout = (LinearLayout) super.getDisplayableView();
-			MicroActivity activity = ContextHolder.getActivity();
+			MicroHost activity = ContextHolder.getActivity();
 			if (graphicsMode == 1) {
 				GlesView glesView = new GlesView(activity);
 				glesView.setRenderer(renderer);
@@ -1003,7 +1003,7 @@ public abstract class Canvas extends Displayable {
 
 		public ViewCallbacks(View view) {
 			mView = view;
-			overlayView = ContextHolder.getActivity().binding.overlayView;
+			overlayView = ContextHolder.getActivity().getOverlayView();
 		}
 
 		@Override
@@ -1276,8 +1276,8 @@ public abstract class Canvas extends Displayable {
 
 		private SoftBar() {
 			super(Canvas.this, false);
-			MicroActivity activity = ContextHolder.getActivity();
-			this.overlayView = activity.binding.overlayView;
+			MicroHost activity = ContextHolder.getActivity();
+			this.overlayView = activity.getOverlayView();
 			DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
 			padding = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 5, metrics);
 			textColor = ContextCompat.getColor(activity, R.color.accent);

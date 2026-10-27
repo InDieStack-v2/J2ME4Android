@@ -35,8 +35,6 @@ import javax.microedition.lcdui.Display;
 import javax.microedition.shell.MidletThread;
 import javax.microedition.util.ContextHolder;
 
-import ru.playsoftware.j2meloader.applist.AppItem;
-import ru.playsoftware.j2meloader.util.AppUtils;
 
 public abstract class MIDlet {
 	private static final String TAG = MIDlet.class.getName();
@@ -183,16 +181,8 @@ public abstract class MIDlet {
 		}
 		argumentsBuilder.deleteCharAt(argumentsBuilder.length() - 1);
 		final String arguments = argumentsBuilder.toString();
-		try {
-			final AppItem item = AppUtils.findApp(name, vendor, uid);
-			if (item == null) {
-				throw new ConnectionNotFoundException("App (" + name + ", " + vendor + ", " + uid + ") was not found!");
-			}
-			MidletThread.startAfterDestroy = new String[] { item.getTitle(), item.getPathExt(), arguments };
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new ConnectionNotFoundException(e);
-		}
+		// Taho fork: no other installed MIDlets to launch.
+		throw new ConnectionNotFoundException("App (" + name + ", " + vendor + ", " + uid + ") was not found!");
 	}
 
 	public final int checkPermission(String permission) {
