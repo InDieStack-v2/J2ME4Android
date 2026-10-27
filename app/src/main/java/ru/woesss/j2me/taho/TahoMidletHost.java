@@ -34,7 +34,7 @@ public final class TahoMidletHost {
 	}
 
 	/** Must be called on the main thread, once per process, with the game already prepared (TahoInstaller). */
-	public static TahoMidletHost start(Context context, String gameId, int width, int height,
+	public static TahoMidletHost start(Context context, String gameId, int width, int height, boolean smooth,
 									   MicroHost.Listener listener) throws Exception {
 		ContextHolder.setAppContext(context);
 		File appDir = new File(Config.getAppDir(), gameId);
@@ -47,6 +47,7 @@ public final class TahoMidletHost {
 		profile.screenHeight = height;
 		profile.showKeyboard = false; // the app's own controls send the keys
 		profile.touchInput = true;
+		profile.screenFilter = smooth;
 		profile.forceFullscreen = true; // no J2ME Loader soft-key bar: the app's keypad sends the soft keys
 		if (!ProfilesManager.saveConfig(profile)) {
 			throw new IllegalStateException("Can't write the game's configuration");
@@ -89,6 +90,11 @@ public final class TahoMidletHost {
 		} else {
 			canvas.postKeyReleased(midpCode);
 		}
+	}
+
+	/** Asks the MIDlet to end the way the player leaving would: END key, destroyApp, then notifyDestroyed. */
+	public void requestExit() {
+		MidletThread.destroyApp();
 	}
 
 	public void setPaused(boolean paused) {

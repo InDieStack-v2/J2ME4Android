@@ -45,14 +45,16 @@ public final class TahoInstaller {
 		if (jadText != null) {
 			desc.merge(new Descriptor(jadText, true));
 		}
+		// dx chooses how to read its input from the file extension, and the app stores the game as a file named
+		// "game". Convert the copy that becomes res.jar anyway.
+		File resJar = new File(outDir, Config.MIDLET_RES_FILE);
+		FileUtils.copyFileUsingChannel(jar, resJar);
 		try {
 			Main.main(new String[]{"--no-optimize", "--core-library",
-					"--output=" + outDir + Config.MIDLET_DEX_FILE, jar.getAbsolutePath()});
+					"--output=" + outDir + Config.MIDLET_DEX_FILE, resJar.getAbsolutePath()});
 		} catch (Throwable e) {
 			throw new ConverterException("Dexing error", e);
 		}
-		File resJar = new File(outDir, Config.MIDLET_RES_FILE);
-		FileUtils.copyFileUsingChannel(jar, resJar);
 		String icon = desc.getIcon();
 		if (icon != null) {
 			File iconFile = new File(outDir, Config.MIDLET_ICON_FILE);
