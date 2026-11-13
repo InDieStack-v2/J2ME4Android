@@ -28,6 +28,8 @@ import javax.microedition.io.Connection;
 import javax.microedition.util.ActivityResultListener;
 import javax.microedition.util.ContextHolder;
 
+import ru.woesss.j2me.taho.TahoBluetooth;
+
 public class LocalDevice implements ActivityResultListener {
 	private static LocalDevice dev;
 	private DiscoveryAgent agent;
@@ -51,6 +53,11 @@ public class LocalDevice implements ActivityResultListener {
 	}
 
 	private LocalDevice() throws BluetoothStateException {
+		// Taho: Bluetooth multiplayer is not supported. "off" answers like a phone with Bluetooth off, before any permission
+		// or adapter use (see TahoBluetooth).
+		if (!TahoBluetooth.nobody()) {
+			throw new BluetoothStateException();
+		}
 		agent = new DiscoveryAgent();
 		ContextHolder.addActivityResultListener(this);
 		boolean permissionsGranted;
@@ -133,7 +140,7 @@ public class LocalDevice implements ActivityResultListener {
 	}
 
 	public static boolean isPowerOn() {
-		return BluetoothAdapter.getDefaultAdapter().isEnabled();
+		return TahoBluetooth.nobody();
 	}
 
 	public int getDiscoverable() {

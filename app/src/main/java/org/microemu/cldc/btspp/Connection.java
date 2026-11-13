@@ -45,6 +45,10 @@ public class Connection implements ConnectionImplementation, StreamConnectionNot
 		if (name == null) {
 			throw new IllegalArgumentException("URL is null");
 		}
+		// Taho: no Bluetooth link is ever opened (see TahoBluetooth); the game handles the IOException like a failed connect.
+		if (true) {
+			throw new IOException("Bluetooth is not available");
+		}
 		Log.d(TAG, "***** Connection URL: " + name);
 
 		int portSepIndex = name.lastIndexOf(':');
