@@ -59,6 +59,9 @@ public class LocalDevice implements ActivityResultListener {
 			throw new BluetoothStateException();
 		}
 		agent = new DiscoveryAgent();
+		if (!TahoBluetooth.REAL) {
+			return; // "nobody": Bluetooth on, nobody nearby. No permission, no system dialog, no adapter.
+		}
 		ContextHolder.addActivityResultListener(this);
 		boolean permissionsGranted;
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -101,6 +104,9 @@ public class LocalDevice implements ActivityResultListener {
 	}
 
 	public String getFriendlyName() {
+		if (!TahoBluetooth.REAL) {
+			return "Taho";
+		}
 		return DiscoveryAgent.adapter.getName();
 	}
 
@@ -114,7 +120,7 @@ public class LocalDevice implements ActivityResultListener {
 			throw new IllegalArgumentException("Invalid discoverable mode");
 		}
 
-		if (lock || mode == DiscoveryAgent.NOT_DISCOVERABLE)
+		if (!TahoBluetooth.REAL || lock || mode == DiscoveryAgent.NOT_DISCOVERABLE)
 			return true;
 
 		Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
@@ -144,6 +150,9 @@ public class LocalDevice implements ActivityResultListener {
 	}
 
 	public int getDiscoverable() {
+		if (!TahoBluetooth.REAL) {
+			return DiscoveryAgent.GIAC;
+		}
 		int scanMode = DiscoveryAgent.adapter.getScanMode();
 		switch (scanMode) {
 			case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
@@ -165,6 +174,9 @@ public class LocalDevice implements ActivityResultListener {
 	}
 
 	public String getBluetoothAddress() {
+		if (!TahoBluetooth.REAL) {
+			return "000000000000";
+		}
 		return androidToJavaAddress(DiscoveryAgent.adapter.getAddress());
 	}
 

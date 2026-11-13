@@ -37,6 +37,8 @@ import java.util.Set;
 
 import javax.microedition.util.ContextHolder;
 
+import ru.woesss.j2me.taho.TahoBluetooth;
+
 public class DiscoveryAgent {
 	public static final int NOT_DISCOVERABLE = 0;
 	public static final int GIAC = 0x9E8B33;
@@ -166,13 +168,42 @@ public class DiscoveryAgent {
 	private LinkedList<Transaction> transList = new LinkedList<>();
 	private HashSet<BluetoothDevice> discoveredList = new HashSet<>();
 
+	// Taho "nobody nearby" (see TahoBluetooth): a search ends with nothing found, reported from its own daemon thread after a short
+	// delay, never on the caller's thread, so the answer arrives the way it does on a phone with nobody in range.
+	private static final int FAKE_SEARCH_MS = 300;
+	private final Object fakeLock = new Object();
+	private DiscoveryListener fakeInquiry;
+	private final java.util.HashMap<Integer, DiscoveryListener> fakeSearches = new java.util.HashMap<>();
+
+	private void later(Runnable task) {
+		Thread thread = new Thread(() -> {
+			try {
+				Thread.sleep(FAKE_SEARCH_MS);
+			} catch (InterruptedException e) {
+				return;
+			}
+			task.run();
+		}, "taho-bluetooth-search");
+		thread.setDaemon(true);
+		thread.start();
+	}
+
 	DiscoveryAgent() throws BluetoothStateException {
+		if (!TahoBluetooth.REAL) {
+			return; // the phone's adapter is never used
+		}
 		adapter = BluetoothAdapter.getDefaultAdapter();
 		if (adapter == null)
 			throw new BluetoothStateException();
 	}
 
 	public RemoteDevice[] retrieveDevices(int option) {
+		if (!TahoBluetooth.REAL) {
+			if (option != CACHED && option != PREKNOWN) {
+				throw new IllegalArgumentException();
+			}
+			return null;
+		}
 		Set<BluetoothDevice> set;
 		if (option == CACHED) {
 			set = discoveredList;
@@ -193,6 +224,25 @@ public class DiscoveryAgent {
 		}
 		if ((accessCode != LIAC) && (accessCode != GIAC) && ((accessCode < 0x9E8B00) || (accessCode > 0x9E8B3F))) {
 			throw new IllegalArgumentException("Invalid accessCode " + accessCode);
+		}
+
+		if (!TahoBluetooth.REAL) {
+			synchronized (fakeLock) {
+				if (fakeInquiry != null) {
+					return false;
+				}
+				fakeInquiry = listener;
+			}
+			later(() -> {
+				synchronized (fakeLock) {
+					if (fakeInquiry != listener) {
+						return; // cancelled meanwhile
+					}
+					fakeInquiry = null;
+				}
+				listener.inquiryCompleted(DiscoveryListener.INQUIRY_COMPLETED);
+			});
+			return true;
 		}
 
 		if (adapter.isDiscovering())
@@ -253,6 +303,16 @@ public class DiscoveryAgent {
 		if (listener == null) {
 			throw new NullPointerException("DiscoveryListener is null");
 		}
+		if (!TahoBluetooth.REAL) {
+			synchronized (fakeLock) {
+				if (fakeInquiry != listener) {
+					return false; // no inquiry of this listener is running
+				}
+				fakeInquiry = null;
+			}
+			listener.inquiryCompleted(DiscoveryListener.INQUIRY_TERMINATED);
+			return true;
+		}
 		boolean ret = adapter.cancelDiscovery();
 		listener.inquiryCompleted(DiscoveryListener.INQUIRY_TERMINATED);
 		return ret;
@@ -286,6 +346,23 @@ public class DiscoveryAgent {
 			}
 		}
 
+		if (!TahoBluetooth.REAL) {
+			final int id;
+			synchronized (fakeLock) {
+				id = maxID++;
+				fakeSearches.put(id, listener);
+			}
+			later(() -> {
+				synchronized (fakeLock) {
+					if (fakeSearches.remove(id) == null) {
+						return; // cancelled meanwhile
+					}
+				}
+				listener.serviceSearchCompleted(id, DiscoveryListener.SERVICE_SEARCH_DEVICE_NOT_REACHABLE);
+			});
+			return id;
+		}
+
 		final Transaction curTrans = new Transaction(maxID, attrSet, uuidSet, btDev, listener);
 		transList.add(curTrans);
 		ContextHolder.getAppContext().registerReceiver(curTrans, new IntentFilter(BluetoothDevice.ACTION_UUID));
@@ -304,6 +381,17 @@ public class DiscoveryAgent {
 	}
 
 	public boolean cancelServiceSearch(int transID) {
+		if (!TahoBluetooth.REAL) {
+			DiscoveryListener listener;
+			synchronized (fakeLock) {
+				listener = fakeSearches.remove(transID);
+			}
+			if (listener == null) {
+				return false; // no such search, or it already finished
+			}
+			listener.serviceSearchCompleted(transID, DiscoveryListener.SERVICE_SEARCH_TERMINATED);
+			return true;
+		}
 		synchronized (transList) {
 			ListIterator<Transaction> iter = transList.listIterator();
 			while (iter.hasNext()) {

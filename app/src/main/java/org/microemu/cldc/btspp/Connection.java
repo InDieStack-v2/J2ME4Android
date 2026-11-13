@@ -25,6 +25,8 @@ import android.util.Log;
 
 import org.microemu.microedition.io.ConnectionImplementation;
 
+import ru.woesss.j2me.taho.TahoBluetooth;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -46,7 +48,7 @@ public class Connection implements ConnectionImplementation, StreamConnectionNot
 			throw new IllegalArgumentException("URL is null");
 		}
 		// Taho: no Bluetooth link is ever opened (see TahoBluetooth); the game handles the IOException like a failed connect.
-		if (true) {
+		if (!TahoBluetooth.REAL) {
 			throw new IOException("Bluetooth is not available");
 		}
 		Log.d(TAG, "***** Connection URL: " + name);

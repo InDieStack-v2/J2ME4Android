@@ -37,9 +37,10 @@ public final class TahoMidletHost {
 
 	/** Must be called on the main thread, once per process, with the game already prepared (TahoInstaller). */
 	public static TahoMidletHost start(Context context, String gameId, int width, int height, boolean smooth, boolean muted,
-									   MicroHost.Listener listener) throws Exception {
+									   String bluetooth, MicroHost.Listener listener) throws Exception {
 		ContextHolder.setAppContext(context);
 		AudioMute.setMuted(muted);
+		TahoBluetooth.mode = "nobody".equals(bluetooth) ? "nobody" : "off"; // before the MIDlet can ask
 		File appDir = new File(Config.getAppDir(), gameId);
 		File configDir = new File(Config.getConfigsDir(), gameId);
 		if (!configDir.isDirectory() && !configDir.mkdirs()) {

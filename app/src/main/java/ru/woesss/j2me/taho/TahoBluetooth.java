@@ -12,6 +12,9 @@
 package ru.woesss.j2me.taho;
 
 public final class TahoBluetooth {
+	/** False: no mode reaches the phone's Bluetooth. A later multiplayer feature adds a "real" mode and turns this into a check of it. */
+	public static final boolean REAL = false;
+
 	/** "off" (default) or "nobody". Set once, before the MIDlet starts; each game runs in its own process. */
 	public static volatile String mode = "off";
 
