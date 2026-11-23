@@ -113,4 +113,16 @@ public final class TahoMidletHost {
 	public void setPaused(boolean paused) {
 		host.setVisible(!paused);
 	}
+
+	/** Feature 038: the game's own screen size while it runs; a canvas being shown hears sizeChanged. Main thread. */
+	public void setScreen(int width, int height) {
+		if (width < 96 || height < 96 || width > 1024 || height > 1024) {
+			return;
+		}
+		Displayable.setVirtualSize(width, height);
+		Displayable current = host.getCurrent();
+		if (current instanceof Canvas) {
+			((Canvas) current).applyVirtualSize();
+		}
+	}
 }

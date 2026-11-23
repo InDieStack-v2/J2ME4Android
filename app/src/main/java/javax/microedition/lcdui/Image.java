@@ -154,6 +154,9 @@ public class Image {
 			bounds.right = width;
 			bounds.bottom = height;
 			if (graphics != null) {
+				// Taho (feature 038): point the drawing canvas at the new bitmap; reset() alone left it drawing into the old one,
+				// so a screen that grew went black. Only reachable once the virtual screen grows while the game runs.
+				graphics.getCanvas().setBitmap(bitmap);
 				graphics.reset(0, 0, width, height);
 				graphics.getCanvas().drawBitmap(b, 0, 0, null);
 			}

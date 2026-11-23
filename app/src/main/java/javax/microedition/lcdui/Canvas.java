@@ -485,6 +485,7 @@ public abstract class Canvas extends Displayable {
 				offscreenCopy.setSize(width, height);
 			}
 		}
+		onSizeUpdated();
 		if (overlay != null) {
 			overlay.resize(screen, onX, onY, onX + onWidth, onY + onHeight + softBarHeight);
 		}
@@ -561,6 +562,31 @@ public abstract class Canvas extends Displayable {
 
 	public void getVirtualScreenBounds(RectF out) {
 		out.set(virtualScreen);
+	}
+
+	/**
+	 * Taho (feature 038): the virtual screen size changed while the game runs (Displayable.setVirtualSize). Tells the game the way
+	 * a phone does, like setFullScreenMode below. A hidden canvas hears it when its surface next changes. UI thread.
+	 */
+	public void applyVirtualSize() {
+		if (!checkSizeChanged()) {
+			return;
+		}
+		if (!visible) {
+			sizeChangedCalled = false;
+			return;
+		}
+		Display.postEvent(CanvasEvent.getInstance(this, CanvasEvent.SIZE_CHANGED, width, height));
+		repaintInternal();
+	}
+
+	/** Taho (feature 038): a subclass's own back buffer follows the canvas size (GameCanvas). Called at the end of updateSize. */
+	protected void onSizeUpdated() {
+	}
+
+	/** Taho (feature 038): resize a buffer in place, so Graphics already handed out keep drawing into it. */
+	protected static void resizeBuffer(Image image, int width, int height) {
+		image.setSize(width, height);
 	}
 
 	public void setFullScreenMode(boolean flag) {

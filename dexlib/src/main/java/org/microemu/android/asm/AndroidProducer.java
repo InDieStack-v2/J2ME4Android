@@ -43,7 +43,10 @@ public class AndroidProducer {
 
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 		ClassVisitor cv = new AndroidClassVisitor(cw);
-		cr.accept(cv, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+		// Taho: keep the frames. With SKIP_FRAMES, COMPUTE_MAXS undercounts max_stack for some Java 6+ classes (StackMapTable),
+		// and dx then fails with "SimException: stack: overflow" (AoE 2's Snd.play: 2 instead of 3). dx ignores the frames, and
+		// the instructions the visitors inject are consumed in place, so the frames stay valid.
+		cr.accept(cv, ClassReader.SKIP_DEBUG);
 
 		return cw.toByteArray();
 	}

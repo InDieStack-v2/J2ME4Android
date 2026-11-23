@@ -45,6 +45,16 @@ public class GameCanvas extends Canvas {
 	}
 
 	@Override
+	protected void onSizeUpdated() {
+		// Taho (feature 038): the back buffer follows a size change; null while Canvas's constructor runs.
+		// ponytail: growing replaces the bitmap, so a Graphics the game cached before sizeChanged draws into the old one; games
+		// that react to sizeChanged normally fetch getGraphics() again. Keep one 1024x1024 bitmap if a game proves otherwise.
+		if (image != null) {
+			resizeBuffer(image, width, maxHeight);
+		}
+	}
+
+	@Override
 	public void paint(Graphics g) {
 		g.drawImage(image, 0, 0, Graphics.LEFT | Graphics.TOP);
 	}
