@@ -114,6 +114,15 @@ public final class TahoMidletHost {
 		host.setVisible(!paused);
 	}
 
+	/** Turns the picture clockwise (0, 90, 180, 270) inside the game's window; touches are turned back. Main thread. */
+	public void setRotation(int degrees) {
+		Canvas.setRotation(degrees);
+		Displayable current = host.getCurrent();
+		if (current instanceof Canvas) {
+			((Canvas) current).updateSize();
+		}
+	}
+
 	/** Feature 038: the game's own screen size while it runs; a canvas being shown hears sizeChanged. Main thread. */
 	public void setScreen(int width, int height) {
 		if (width < 96 || height < 96 || width > 1024 || height > 1024) {

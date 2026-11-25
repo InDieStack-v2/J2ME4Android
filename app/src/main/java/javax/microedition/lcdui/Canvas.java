@@ -133,6 +133,9 @@ public abstract class Canvas extends Displayable {
 	private static boolean screenshotRawMode;
 	private static int scaleType;
 	private static int screenGravity;
+	// Taho: the picture is turned clockwise by this many degrees (0, 90, 180, 270) inside the game's window. The virtual screen
+	// is laid out in the turned space (the window's sides swapped at 90 and 270) and mapped back when drawing and for touches.
+	private static int rotation;
 
 	private final Object bufferLock = new Object();
 	private final Object surfaceLock = new Object();
@@ -179,6 +182,55 @@ public abstract class Canvas extends Displayable {
 		displayWidth = ContextHolder.getDisplayWidth();
 		displayHeight = ContextHolder.getDisplayHeight();
 		updateSize();
+	}
+
+	/** Taho: turn the picture clockwise; the shown canvas applies it with updateSize. */
+	public static void setRotation(int degrees) {
+		Canvas.rotation = (((degrees % 360) + 360) % 360) / 90 * 90;
+	}
+
+	private static boolean turned() {
+		return rotation == 90 || rotation == 270;
+	}
+
+	/** Taho: a point of the window (px) in the turned space the virtual screen is laid out in. */
+	private float turnedX(float x, float y) {
+		switch (rotation) {
+			case 90: return y;
+			case 180: return displayWidth - x;
+			case 270: return displayHeight - y;
+			default: return x;
+		}
+	}
+
+	private float turnedY(float x, float y) {
+		switch (rotation) {
+			case 90: return displayWidth - x;
+			case 180: return displayHeight - y;
+			case 270: return x;
+			default: return y;
+		}
+	}
+
+	/** Taho: the GL position (NDC) of a point of the turned space. */
+	private float[] glPoint(float u, float v) {
+		float x, y;
+		switch (rotation) {
+			case 90: x = displayWidth - v; y = u; break;
+			case 180: x = displayWidth - u; y = displayHeight - v; break;
+			case 270: x = v; y = displayHeight - u; break;
+			default: x = u; y = v; break;
+		}
+		return new float[]{2.0f * x / displayWidth - 1.0f, 1.0f - 2.0f * y / displayHeight};
+	}
+
+	/** Taho: maps the turned space onto the window for the software blit. */
+	private void turn(android.graphics.Canvas canvas) {
+		switch (rotation) {
+			case 90: canvas.translate(displayWidth, 0); canvas.rotate(90); break;
+			case 180: canvas.translate(displayWidth, displayHeight); canvas.rotate(180); break;
+			case 270: canvas.translate(0, displayHeight); canvas.rotate(270); break;
+		}
 	}
 
 	public static void setShaderFilter(ShaderInfo shader) {
@@ -302,10 +354,13 @@ public abstract class Canvas extends Displayable {
 		CanvasWrapper g = canvasWrapper;
 		g.bind(canvas);
 		g.clear(backgroundColor);
+		canvas.save();
+		turn(canvas);
 		synchronized (bufferLock) {
 			offscreenCopy.getBitmap().prepareToDraw();
 			g.drawImage(offscreenCopy, virtualScreen);
 		}
+		canvas.restore();
 		if (fpsCounter != null) {
 			fpsCounter.increment();
 		}
@@ -351,6 +406,9 @@ public abstract class Canvas extends Displayable {
 		 * than zero, which means auto-selection of this size so that the resulting canvas
 		 * has the same aspect ratio as the actual screen of the device.
 		 */
+		// Taho: the turned space. These shadow the window's sides for the rest of the layout.
+		int displayWidth = turned() ? this.displayHeight : this.displayWidth;
+		int displayHeight = turned() ? this.displayWidth : this.displayHeight;
 		int scaledDisplayHeight;
 		VirtualKeyboard vk = ContextHolder.getVk();
 		boolean isPhoneSkin = vk != null && vk.isPhone();
@@ -491,13 +549,10 @@ public abstract class Canvas extends Displayable {
 		}
 
 		if (graphicsMode == 1) {
-			float gl = 2.0f * virtualScreen.left / displayWidth - 1.0f;
-			float gt = 1.0f - 2.0f * virtualScreen.top / displayHeight;
-			float gr = 2.0f * virtualScreen.right / displayWidth - 1.0f;
-			float gb = 1.0f - 2.0f * virtualScreen.bottom / displayHeight;
 			float th = (float) height / offscreen.getBitmap().getHeight();
 			float tw = (float) width / offscreen.getBitmap().getWidth();
-			renderer.updateSize(gl, gt, gr, gb, th, tw);
+			RectF v = virtualScreen;
+			renderer.updateSize(glPoint(v.left, v.top), glPoint(v.left, v.bottom), glPoint(v.right, v.top), glPoint(v.right, v.bottom), th, tw);
 		}
 		repaintInternal();
 	}
@@ -710,9 +765,12 @@ public abstract class Canvas extends Displayable {
 				CanvasWrapper g = this.canvasWrapper;
 				g.bind(canvas);
 				g.clear(backgroundColor);
+				canvas.save();
+				turn(canvas);
 				synchronized (bufferLock) {
 					g.drawImage(offscreenCopy, virtualScreen);
 				}
+				canvas.restore();
 				surface.unlockCanvasAndPost(canvas);
 			}
 			if (fpsCounter != null) {
@@ -866,14 +924,15 @@ public abstract class Canvas extends Displayable {
 			glUniform1i(program.uTextureUnit, 0);
 		}
 
-		public void updateSize(float gl, float gt, float gr, float gb, float th, float tw) {
+		// Taho: each corner of the picture at its own (possibly turned) position, with its texture corner.
+		public void updateSize(float[] lt, float[] lb, float[] rt, float[] rb, float th, float tw) {
 			synchronized (vbo) {
 				FloatBuffer vertex_bg = vbo;
 				vertex_bg.rewind();
-				vertex_bg.put(gl).put(gt).put(0.0f).put(0.0f);// lt
-				vertex_bg.put(gl).put(gb).put(0.0f).put(  th);// lb
-				vertex_bg.put(gr).put(gt).put(  tw).put(0.0f);// rt
-				vertex_bg.put(gr).put(gb).put(  tw).put(  th);// rb
+				vertex_bg.put(lt[0]).put(lt[1]).put(0.0f).put(0.0f);// lt
+				vertex_bg.put(lb[0]).put(lb[1]).put(0.0f).put(  th);// lb
+				vertex_bg.put(rt[0]).put(rt[1]).put(  tw).put(0.0f);// rt
+				vertex_bg.put(rb[0]).put(rb[1]).put(  tw).put(  th);// rb
 			}
 			if (isStarted) {
 				mView.queueEvent(() -> {
@@ -1099,9 +1158,9 @@ public abstract class Canvas extends Displayable {
 					if (overlay != null) {
 						overlay.pointerPressed(id, x, y);
 					}
-					if (touchInput && virtualScreen.contains(x, y)) {
-						int cX = Math.round(convertPointerX(x));
-						int cY = Math.round(convertPointerY(y));
+					if (touchInput && virtualScreen.contains(turnedX(x, y), turnedY(x, y))) {
+						int cX = Math.round(convertPointerX(turnedX(x, y)));
+						int cY = Math.round(convertPointerY(turnedY(x, y)));
 						if (id < 20) {
 							lastPointerPos[id][0] = cX;
 							lastPointerPos[id][1] = cY;
@@ -1124,9 +1183,9 @@ public abstract class Canvas extends Displayable {
 							if (overlay != null) {
 								overlay.pointerDragged(id, x, y);
 							}
-							if (touchInput && virtualScreen.contains(x, y)) {
-								int cX = Math.round(convertPointerX(x));
-								int cY = Math.round(convertPointerY(y));
+							if (touchInput && virtualScreen.contains(turnedX(x, y), turnedY(x, y))) {
+								int cX = Math.round(convertPointerX(turnedX(x, y)));
+								int cY = Math.round(convertPointerY(turnedY(x, y)));
 								if (id < 20) {
 									int oX = lastPointerPos[id][0];
 									int oY = lastPointerPos[id][1];
@@ -1151,9 +1210,9 @@ public abstract class Canvas extends Displayable {
 						if (overlay != null) {
 							overlay.pointerDragged(id, x, y);
 						}
-						if (touchInput && virtualScreen.contains(x, y)) {
-							int cX = Math.round(convertPointerX(x));
-							int cY = Math.round(convertPointerY(y));
+						if (touchInput && virtualScreen.contains(turnedX(x, y), turnedY(x, y))) {
+							int cX = Math.round(convertPointerX(turnedX(x, y)));
+							int cY = Math.round(convertPointerY(turnedY(x, y)));
 							if (id < 20) {
 								int oX = lastPointerPos[id][0];
 								int oY = lastPointerPos[id][1];
@@ -1183,9 +1242,9 @@ public abstract class Canvas extends Displayable {
 					if (overlay != null) {
 						overlay.pointerReleased(id, x, y);
 					}
-					if (touchInput && virtualScreen.contains(x, y)) {
-						int cX = Math.round(convertPointerX(x));
-						int cY = Math.round(convertPointerY(y));
+					if (touchInput && virtualScreen.contains(turnedX(x, y), turnedY(x, y))) {
+						int cX = Math.round(convertPointerX(turnedX(x, y)));
+						int cY = Math.round(convertPointerY(turnedY(x, y)));
 						lastPointerPos[id][0] = cX;
 						lastPointerPos[id][1] = cY;
 						Display.postEvent(CanvasEvent.getInstance(Canvas.this,
