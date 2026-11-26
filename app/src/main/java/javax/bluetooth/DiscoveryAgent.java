@@ -188,8 +188,12 @@ public class DiscoveryAgent {
 		thread.start();
 	}
 
+	// The mode this object was made in: a game keeps the object it was given, so a live mode change (TahoBluetooth.setMode) only
+	// reaches it through its next LocalDevice.getLocalDevice().
+	private final boolean real = TahoBluetooth.real();
+
 	DiscoveryAgent() throws BluetoothStateException {
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			return; // the phone's adapter is never used
 		}
 		adapter = BluetoothAdapter.getDefaultAdapter();
@@ -198,7 +202,7 @@ public class DiscoveryAgent {
 	}
 
 	public RemoteDevice[] retrieveDevices(int option) {
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			if (option != CACHED && option != PREKNOWN) {
 				throw new IllegalArgumentException();
 			}
@@ -226,7 +230,7 @@ public class DiscoveryAgent {
 			throw new IllegalArgumentException("Invalid accessCode " + accessCode);
 		}
 
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			synchronized (fakeLock) {
 				if (fakeInquiry != null) {
 					return false;
@@ -303,7 +307,7 @@ public class DiscoveryAgent {
 		if (listener == null) {
 			throw new NullPointerException("DiscoveryListener is null");
 		}
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			synchronized (fakeLock) {
 				if (fakeInquiry != listener) {
 					return false; // no inquiry of this listener is running
@@ -346,7 +350,7 @@ public class DiscoveryAgent {
 			}
 		}
 
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			final int id;
 			synchronized (fakeLock) {
 				id = maxID++;
@@ -381,7 +385,7 @@ public class DiscoveryAgent {
 	}
 
 	public boolean cancelServiceSearch(int transID) {
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			DiscoveryListener listener;
 			synchronized (fakeLock) {
 				listener = fakeSearches.remove(transID);

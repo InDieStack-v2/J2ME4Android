@@ -149,8 +149,12 @@ public class ContextHolder {
 		if (context == null) {
 			return false;
 		}
-		// The game process has no window to ask in: a permission the app does not hold already is denied.
-		return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED;
+		if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+			return true;
+		}
+		// The game process has no window to ask in. In real Bluetooth mode the app asks for us (the grant covers every process of the app).
+		return ru.woesss.j2me.taho.TahoBluetooth.real() && ru.woesss.j2me.taho.TahoBluetooth.ask("permission")
+				&& ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED;
 	}
 
 	public static boolean requestPermissions(String[] permissions) {
@@ -158,7 +162,9 @@ public class ContextHolder {
 		if (context == null) {
 			return false;
 		}
-		return hasPermissions(context, permissions);
+		return hasPermissions(context, permissions)
+				|| (ru.woesss.j2me.taho.TahoBluetooth.real() && ru.woesss.j2me.taho.TahoBluetooth.ask("permission")
+				&& hasPermissions(context, permissions));
 	}
 
 	private static boolean hasPermissions(Context context, String... permissions) {

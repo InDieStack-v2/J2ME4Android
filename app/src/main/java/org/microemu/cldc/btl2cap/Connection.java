@@ -48,7 +48,7 @@ public class Connection implements ConnectionImplementation, L2CAPConnectionNoti
 			throw new IllegalArgumentException("URL is null");
 		}
 		// Taho: no Bluetooth link is ever opened (see TahoBluetooth); the game handles the IOException like a failed connect.
-		if (!TahoBluetooth.REAL) {
+		if (!TahoBluetooth.real()) {
 			throw new IOException("Bluetooth is not available");
 		}
 		Log.d(TAG, "***** Connection URL: " + name);

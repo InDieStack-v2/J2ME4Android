@@ -9,6 +9,8 @@
 
 package javax.microedition.shell;
 
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
@@ -27,6 +29,9 @@ import javax.microedition.lcdui.Displayable;
 import javax.microedition.lcdui.ViewHandler;
 import javax.microedition.lcdui.event.SimpleEvent;
 import javax.microedition.lcdui.overlay.OverlayView;
+import javax.microedition.util.ContextHolder;
+
+import ru.woesss.j2me.taho.TahoBluetooth;
 
 public class MicroHost extends ContextThemeWrapper {
 	/** Notifications for the embedding service. Called on the main thread. */
@@ -133,7 +138,23 @@ public class MicroHost extends ContextThemeWrapper {
 	public void startActivity(Intent intent) {
 	}
 
+	/**
+	 * The game process has no windows. Only the Bluetooth dialogs are supported (real mode): the app shows them, and the
+	 * answer reaches ContextHolder.notifyOnActivityResult. The caller does not wait here, like the real startActivityForResult.
+	 */
 	public void startActivityForResult(Intent intent, int requestCode) {
+		String action = intent.getAction();
+		final String kind = BluetoothAdapter.ACTION_REQUEST_ENABLE.equals(action) ? "enable"
+				: BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE.equals(action) ? "discoverable" : null;
+		if (kind == null || !TahoBluetooth.real()) {
+			return;
+		}
+		Thread t = new Thread(() -> {
+			boolean ok = TahoBluetooth.ask(kind);
+			ContextHolder.notifyOnActivityResult(requestCode, ok ? Activity.RESULT_OK : Activity.RESULT_CANCELED, null);
+		}, "taho-bluetooth-ask");
+		t.setDaemon(true);
+		t.start();
 	}
 
 	private class SetCurrentEvent extends SimpleEvent {

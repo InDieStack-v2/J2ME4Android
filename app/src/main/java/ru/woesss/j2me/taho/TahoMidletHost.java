@@ -40,7 +40,7 @@ public final class TahoMidletHost {
 									   String bluetooth, MicroHost.Listener listener) throws Exception {
 		ContextHolder.setAppContext(context);
 		AudioMute.setMuted(muted);
-		TahoBluetooth.mode = "nobody".equals(bluetooth) ? "nobody" : "off"; // before the MIDlet can ask
+		TahoBluetooth.mode = "nobody".equals(bluetooth) || "real".equals(bluetooth) ? bluetooth : "off"; // before the MIDlet can ask
 		File appDir = new File(Config.getAppDir(), gameId);
 		File configDir = new File(Config.getConfigsDir(), gameId);
 		if (!configDir.isDirectory() && !configDir.mkdirs()) {

@@ -31,11 +31,13 @@ import javax.microedition.util.ContextHolder;
 import ru.woesss.j2me.taho.TahoBluetooth;
 
 public class LocalDevice implements ActivityResultListener {
-	private static LocalDevice dev;
+	private static volatile LocalDevice dev;
 	private DiscoveryAgent agent;
 	private static Hashtable<String, String> properties;
 	private volatile boolean lock = false;
+	private final boolean real = TahoBluetooth.real(); // the mode this object was made in, see DiscoveryAgent
 	private boolean cancelled = false;
+	private boolean enableAnswered = false;
 	private Object monitor = new Object();
 
 	static {
@@ -55,11 +57,11 @@ public class LocalDevice implements ActivityResultListener {
 	private LocalDevice() throws BluetoothStateException {
 		// Taho: Bluetooth multiplayer is not supported. "off" answers like a phone with Bluetooth off, before any permission
 		// or adapter use (see TahoBluetooth).
-		if (!TahoBluetooth.nobody()) {
+		if (!TahoBluetooth.nobody() && !TahoBluetooth.real()) {
 			throw new BluetoothStateException();
 		}
 		agent = new DiscoveryAgent();
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			return; // "nobody": Bluetooth on, nobody nearby. No permission, no system dialog, no adapter.
 		}
 		ContextHolder.addActivityResultListener(this);
@@ -82,7 +84,9 @@ public class LocalDevice implements ActivityResultListener {
 			ContextHolder.getActivity().startActivityForResult(enableBtIntent, 2);
 			synchronized (monitor) {
 				try {
-					monitor.wait();
+					while (!enableAnswered) { // the answer may arrive before we wait
+						monitor.wait();
+					}
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -91,6 +95,11 @@ public class LocalDevice implements ActivityResultListener {
 				throw new BluetoothStateException();
 			cancelled = false;
 		}
+	}
+
+	/** Taho: the mode changed while the game runs; the next getLocalDevice() is made in the new mode. */
+	public static void tahoReset() {
+		dev = null;
 	}
 
 	public static LocalDevice getLocalDevice() throws BluetoothStateException {
@@ -104,7 +113,7 @@ public class LocalDevice implements ActivityResultListener {
 	}
 
 	public String getFriendlyName() {
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			return "Taho";
 		}
 		return DiscoveryAgent.adapter.getName();
@@ -120,7 +129,7 @@ public class LocalDevice implements ActivityResultListener {
 			throw new IllegalArgumentException("Invalid discoverable mode");
 		}
 
-		if (!TahoBluetooth.REAL || lock || mode == DiscoveryAgent.NOT_DISCOVERABLE)
+		if (!real || lock || mode == DiscoveryAgent.NOT_DISCOVERABLE)
 			return true;
 
 		Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
@@ -140,17 +149,21 @@ public class LocalDevice implements ActivityResultListener {
 			synchronized (monitor) {
 				if (resultCode != Activity.RESULT_OK)
 					cancelled = true;
+				enableAnswered = true;
 				monitor.notifyAll();
 			}
 		}
 	}
 
 	public static boolean isPowerOn() {
+		if (TahoBluetooth.real()) {
+			return DiscoveryAgent.adapter != null && DiscoveryAgent.adapter.isEnabled();
+		}
 		return TahoBluetooth.nobody();
 	}
 
 	public int getDiscoverable() {
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			return DiscoveryAgent.GIAC;
 		}
 		int scanMode = DiscoveryAgent.adapter.getScanMode();
@@ -174,7 +187,7 @@ public class LocalDevice implements ActivityResultListener {
 	}
 
 	public String getBluetoothAddress() {
-		if (!TahoBluetooth.REAL) {
+		if (!real) {
 			return "000000000000";
 		}
 		return androidToJavaAddress(DiscoveryAgent.adapter.getAddress());
