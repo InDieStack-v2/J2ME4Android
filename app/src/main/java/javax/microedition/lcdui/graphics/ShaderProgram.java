@@ -40,6 +40,7 @@ public class ShaderProgram {
 	public int uTexelDelta;
 	public int uSetting;
 	public int uPixelDelta;
+	public int uPicture; // Taho: brightness and contrast factors, in the default shader only (-1 in a user shader)
 
 	public ShaderProgram(ShaderInfo shader) {
 		if (shader != null) {
@@ -90,6 +91,7 @@ public class ShaderProgram {
 		uTexelDelta = glGetUniformLocation(program, "u_texelDelta");
 		uPixelDelta = glGetUniformLocation(program, "u_pixelDelta");
 		uSetting = glGetUniformLocation(program, "u_setting");
+		uPicture = glGetUniformLocation(program, "u_picture");
 		glUseProgram(program);
 		int error1 = glGetError();
 		if (error1 != GL_NO_ERROR) {

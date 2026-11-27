@@ -124,6 +124,10 @@ public abstract class Canvas extends Displayable {
 	private static boolean touchInput;
 	private static int graphicsMode;
 	private static ShaderInfo shaderFilter;
+	// Taho (feature 040): brightness and contrast factors the default shader applies; 1 and 1 change nothing.
+	private static float pictureBrightness = 1f;
+	private static float pictureContrast = 1f;
+	private static volatile GLRenderer activeRenderer;
 	private static boolean parallelRedraw;
 	private static boolean forceFullscreen;
 	private static boolean showFps;
@@ -231,6 +235,14 @@ public abstract class Canvas extends Displayable {
 			case 180: canvas.translate(displayWidth, displayHeight); canvas.rotate(180); break;
 			case 270: canvas.translate(0, displayHeight); canvas.rotate(270); break;
 		}
+	}
+
+	/** Taho: brightness and contrast of the picture, as factors (1 and 1 = unchanged). Takes effect on the next frame, also while paused. */
+	public static void setPicture(float brightness, float contrast) {
+		pictureBrightness = brightness;
+		pictureContrast = contrast;
+		GLRenderer r = activeRenderer;
+		if (r != null) r.pushPicture();
 	}
 
 	public static void setShaderFilter(ShaderInfo shader) {
@@ -873,6 +885,17 @@ public abstract class Canvas extends Displayable {
 		private final int[] bgTextureId = new int[1];
 		private ShaderProgram program;
 		private boolean isStarted;
+		private volatile boolean pictureDirty;
+
+		void pushPicture() {
+			pictureDirty = true;
+			GLSurfaceView view = mView;
+			if (view != null) view.requestRender();
+		}
+
+		private void uploadPicture() {
+			if (program.uPicture >= 0) glUniform2f(program.uPicture, pictureBrightness, pictureContrast);
+		}
 
 		@Override
 		public void onSurfaceCreated(GL10 gl, EGLConfig config) {
@@ -888,6 +911,7 @@ public abstract class Canvas extends Displayable {
 			if (shaderFilter != null && shaderFilter.values != null && program.uSetting >= 0) {
 				glUniform4fv(program.uSetting, 1, shaderFilter.values, 0);
 			}
+			uploadPicture();
 			isStarted = true;
 		}
 
@@ -901,6 +925,10 @@ public abstract class Canvas extends Displayable {
 
 		@Override
 		public void onDrawFrame(GL10 gl) {
+			if (pictureDirty) {
+				pictureDirty = false;
+				uploadPicture();
+			}
 			glClear(GL_COLOR_BUFFER_BIT);
 			synchronized (bufferLock) {
 				GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, offscreenCopy.getBitmap(), 0);
@@ -949,6 +977,7 @@ public abstract class Canvas extends Displayable {
 		}
 
 		public void setView(GLSurfaceView mView) {
+			activeRenderer = this;
 			this.mView = mView;
 		}
 
